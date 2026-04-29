@@ -6,6 +6,7 @@ Struktur sheet Perbankan:
   Row 2: Header kolom aktual
   Row 3+: Data (ID_Pemda, Provinsi, Tahun, Snapshot, 10 metrik)
 
+  
 Kolom target (fact_perbankan):
   pemda_id, tahun, snapshot_label, kredit_total_miliar, dpk_miliar, ldr_pct,
   zona_ldr, npl_miliar, npl_ratio, kredit_umkm_miliar, rasio_umkm, umkm_per_kc_miliar,
