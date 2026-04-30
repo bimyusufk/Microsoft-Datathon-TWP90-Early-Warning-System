@@ -1,0 +1,3 @@
+pipeline,level,rmse,r2,naive_rmse
+A (Huber FD),annual,0.005542,0.5999,0.004768
+C (XGBoost),annual,0.0025310573082612795,0.9165587277080446,0.0013802644414442516
