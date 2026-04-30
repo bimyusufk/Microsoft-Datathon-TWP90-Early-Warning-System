@@ -1,0 +1,20 @@
+Pipeline C — XGBoost Pseudo-MIDAS Results
+=======================================================
+Model        : XGBRegressor (n_est=300, depth=5, lr=0.05)
+Train data   : Monthly 2023-2024 (744 obs)
+Test data    : Monthly 2025 (372 obs)
+Features     : 32 total
+
+MONTHLY METRICS
+----------------------------------------
+Train RMSE   : 0.001846
+Test  RMSE   : 0.005437
+Test  R2     : 0.7468
+Naive RMSE   : 0.004923
+
+ANNUAL COMPARISON vs PIPELINE A
+----------------------------------------
+Pipeline A RMSE : 0.005542 (Huber FD)
+Pipeline C RMSE : 0.002531 (XGBoost)
+Pipeline C R2   : 0.9166
+Improvement     : 54.3%

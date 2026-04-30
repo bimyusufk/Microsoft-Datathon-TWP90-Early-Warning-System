@@ -1,0 +1,32 @@
+provinsi_id,nama_provinsi,twp90_aktual_2025,level_risiko,twp90_skenario_stress,perubahan_stress_pct,rekomendasi_kebijakan
+2,Dki Jakarta,0.0466833333333333,HIGH,0.044422952388153594,-4.84,Intensifkan pengawasan kredit; batasi ekspansi pinjaman baru; tingkatkan cadangan CKPN
+29,Nusa Tenggara Barat,0.0404083333333333,HIGH,0.0381479523881536,-5.59,Intensifkan pengawasan kredit; batasi ekspansi pinjaman baru; tingkatkan cadangan CKPN
+6,Jawa Timur,0.0340666666666666,HIGH,0.031806285721486895,-6.64,Intensifkan pengawasan kredit; batasi ekspansi pinjaman baru; tingkatkan cadangan CKPN
+3,Jawa Barat,0.0335833333333333,HIGH,0.031322952388153594,-6.73,Intensifkan pengawasan kredit; batasi ekspansi pinjaman baru; tingkatkan cadangan CKPN
+5,Daerah Istimewa Yogyakarta,0.0286249999999999,MEDIUM,0.026364619054820196,-7.9,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+14,Sumatera Selatan,0.0285166666666666,MEDIUM,0.026256285721486895,-7.93,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+4,Jawa Tengah,0.0282416666666666,MEDIUM,0.025981285721486894,-8.0,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+16,Lampung,0.02775,MEDIUM,0.025489619054820296,-8.15,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+9,Sumatera Barat,0.0261083333333333,MEDIUM,0.023847952388153595,-8.66,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+1,Banten,0.0241166666666666,MEDIUM,0.021856285721486894,-9.37,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+21,Kalimantan Selatan,0.0218416666666666,MEDIUM,0.019581285721486895,-10.35,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+13,Jambi,0.0208499999999999,MEDIUM,0.018589619054820195,-10.84,Monitor NPL bulanan; evaluasi kualitas portofolio kredit; siapkan early intervention
+15,Bengkulu,0.0194,LOW,0.017139619054820296,-11.65,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+8,Sumatera Utara,0.018375,LOW,0.016114619054820294,-12.3,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+22,Sulawesi Utara,0.0181833333333333,LOW,0.015922952388153597,-12.43,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+20,Kalimantan Timur,0.018125,LOW,0.015864619054820294,-12.47,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+18,Kalimantan Tengah,0.0178833333333333,LOW,0.015622952388153595,-12.64,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+12,Kepulauan Bangka Belitung,0.01745,LOW,0.015189619054820296,-12.95,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+10,Riau,0.017275,LOW,0.015014619054820294,-13.08,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+11,Kepulauan Riau,0.0172499999999999,LOW,0.014989619054820196,-13.1,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+26,Sulawesi Selatan,0.0168583333333333,LOW,0.014597952388153597,-13.41,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+17,Kalimantan Barat,0.0166083333333333,LOW,0.014347952388153597,-13.61,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+24,Sulawesi Tengah,0.016375,LOW,0.014114619054820296,-13.8,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+23,Gorontalo,0.0159583333333333,LOW,0.013697952388153595,-14.16,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+30,Nusa Tenggara Timur,0.0155333333333333,LOW,0.013272952388153595,-14.55,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+28,Bali,0.0153916666666666,LOW,0.013131285721486896,-14.69,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+27,Sulawesi Tenggara,0.0148083333333333,LOW,0.012547952388153595,-15.26,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+25,Sulawesi Barat,0.0126249999999999,LOW,0.010364619054820196,-17.9,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+7,Aceh,0.01025,LOW,0.007989619054820296,-22.05,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+32,Maluku,0.0087499999999999,LOW,0.0064896190548201955,-25.83,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM
+31,Maluku Utara,0.0078999999999999,LOW,0.0056396190548201955,-28.61,Pertahankan kebijakan saat ini; peluang ekspansi kredit UMKM

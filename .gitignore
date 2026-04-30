@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -22,3 +23,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+/Dashboard
+>>>>>>> ba5c8d93f5367eea25dc5aa132d6e3e05741687b

@@ -1,0 +1,42 @@
+Pipeline A — First-Differences Huber Regression
+============================================================
+Estimator    : HuberRegressor(epsilon=1.35)
+Train data   : delta-2023, delta-2024 (62 obs)
+Test data    : delta-2025 (31 obs)
+Parameters   : 9 (intercept + 8 features)
+Obs:Param    : 6.9:1
+
+PERFORMANCE (Level-space)
+----------------------------------------
+Train RMSE   : 0.005878
+Test  RMSE   : 0.005542
+Naive RMSE   : 0.004768
+Train R2     : 0.6411
+Test  R2     : 0.5999
+Naive R2     : 0.7038
+Overfitting  : 6.1%
+Neg preds    : 0/31
+Beats naive  : 14/31 provinces
+
+vs OLS (previous):
+  RMSE improvement: 17.9%
+  R2 improvement  : 0.194 (0.406 -> 0.600)
+
+COEFFICIENTS (original scale, sorted by |coef|)
+----------------------------------------
+  delta_x2_inflasi_avg        :  -0.201322
+  delta_x1_bi_rate_avg        :  -0.002937
+  delta_x9_npl                :  -0.206536
+  delta_x5_internet           :   0.016981
+  delta_x8_ldr                :   0.013474
+  delta_log_pdrb              :   0.011475
+  delta_x4_tpt                :  -0.000817
+  delta_x10_umkm              :  -0.002980
+
+NOTES
+----------------------------------------
+[1] Huber is robust to outliers (epsilon=1.35, M-estimator).
+[2] Coefficients = association, NOT causation.
+[3] Model provides directional insight & province ranking.
+[4] For point-forecast precision, model still below naive.
+[5] Features standardized (StandardScaler) before fitting.

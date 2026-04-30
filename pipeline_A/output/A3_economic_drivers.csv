@@ -1,0 +1,9 @@
+faktor_ekonomi,koefisien,interpretasi
+x1_bi_rate_avg,-0.001652,Kenaikan BI rate -> penurunan TWP90 (kebijakan moneter ketat)
+x2_inflasi_avg,-0.105687,Kenaikan inflasi -> penurunan TWP90 (erosi daya beli)
+log_pdrb,-0.002526,Pertumbuhan PDRB -> kenaikan TWP90 (ekonomi ekspansif)
+x4_tpt,-0.000365,Kenaikan pengangguran -> kenaikan TWP90
+x5_internet,0.005376,Peningkatan internet -> kenaikan TWP90 (akses digital banking)
+x8_ldr,0.001181,Kenaikan LDR -> kenaikan TWP90 (ekspansi kredit)
+x9_npl,-0.132012,Kenaikan NPL -> penurunan TWP90 (pengetatan kredit oleh bank)
+x10_umkm,0.007968,Kenaikan rasio UMKM -> penurunan TWP90

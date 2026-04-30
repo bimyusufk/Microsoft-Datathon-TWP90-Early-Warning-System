@@ -1,0 +1,9 @@
+feature,coef_scaled,coef_original_scale
+d_x2_inflasi_avg,-0.002475,-0.201322
+d_x1_bi_rate_avg,-0.002233,-0.002937
+d_x9_npl,-0.001445,-0.206536
+d_x5_internet,0.000962,0.016981
+d_x8_ldr,0.000801,0.013474
+d_log_pdrb,0.000359,0.011475
+d_x4_tpt,-0.00026,-0.000817
+d_x10_umkm,-6.7e-05,-0.00298
