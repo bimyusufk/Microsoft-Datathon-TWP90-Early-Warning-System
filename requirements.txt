@@ -7,3 +7,4 @@ xgboost
 openpyxl
 psycopg[binary]
 ipykernel
+statsmodels
