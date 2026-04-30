@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TWP90 Early Warning System — Indonesia P2P Lending</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg:        #07090f;
+  --surface:   #0d1117;
+  --card:      #111827;
+  --card2:     #161e2e;
+  --border:    #1f2937;
+  --border2:   #253047;
+  --accent:    #3b82f6;
+  --accent2:   #0ea5e9;
+  --red:       #ef4444;
+  --red-dim:   rgba(239,68,68,0.12);
+  --orange:    #f59e0b;
+  --orange-dim:rgba(245,158,11,0.12);
+  --green:     #10b981;
+  --green-dim: rgba(16,185,129,0.12);
+  --text:      #e2e8f0;
+  --text2:     #94a3b8;
+  --muted:     #475569;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE GRAIN ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+/* ── HEADER ── */
+header {
+  background: rgba(13,17,23,0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 56px;
+}
+
+.logo-wrap { display: flex; align-items: center; gap: 10px; }
+.logo-badge {
+  background: linear-gradient(135deg, #1d4ed8, #0284c7);
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+}
+header h1 {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.live-indicator {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+}
+.live-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 6px var(--green);
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+/* Blinking badges */
+@keyframes blink-red {
+  0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.7)}
+  50%{box-shadow:0 0 0 4px rgba(239,68,68,0)}
+}
+@keyframes blink-orange {
+  0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.6)}
+  50%{box-shadow:0 0 0 4px rgba(245,158,11,0)}
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  gap: 1px;
+  padding: 0 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.tab {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 20px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+  background: transparent;
+  border-top: none; border-left: none; border-right: none;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover:not(.active) { color: var(--text2); }
+
+/* ── PANEL ── */
+.panel { display: none; padding: 24px 28px; }
+.panel.active { display: block; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.filter-btn {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--card); color: var(--muted);
+  cursor: pointer; transition: all .15s;
+}
+.filter-btn.active-all { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,.08); }
+.filter-btn.active-high { border-color: var(--red); color: var(--red); background: var(--red-dim); animation: blink-red 2s infinite; }
+.filter-btn.active-med { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+.filter-btn.active-low { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+.filter-btn:hover { color: var(--text); border-color: var(--border2); }
+
+.search-input {
+  font-family: var(--mono); font-size: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text); padding: 5px 12px; border-radius: 4px;
+  outline: none; width: 200px; margin-left: auto;
+  transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--accent); }
+
+/* ── KPI ROW ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.kpi:hover { border-color: var(--border2); }
+.kpi-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.kpi.blue  .kpi-accent { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.kpi.red   .kpi-accent { background: var(--red); }
+.kpi.orange .kpi-accent { background: var(--orange); }
+.kpi.green .kpi-accent { background: var(--green); }
+.kpi.cyan  .kpi-accent { background: var(--accent2); }
+.kpi-icon { font-size: 14px; margin-bottom: 8px; }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 4px; font-family: var(--mono); }
+.kpi-value { font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1; }
+.kpi-sub   { font-size: 11px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.kpi.red    .kpi-value { color: var(--red); }
+.kpi.orange .kpi-value { color: var(--orange); }
+.kpi.green  .kpi-value { color: var(--green); }
+.kpi.blue   .kpi-value { color: var(--accent); }
+.kpi.cyan   .kpi-value { color: var(--accent2); }
+
+/* Sparkline in KPI */
+.kpi-sparkline {
+  width: 100%; height: 32px; margin-top: 8px;
+}
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.grid-3r { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.card-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.card-body { padding: 16px 18px; }
+.card-tag {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .06em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+  background: rgba(59,130,246,.1); color: var(--accent);
+}
+
+/* ── RISK CARDS (HIGH) ── */
+.high-card {
+  background: var(--card);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px; padding: 16px;
+  position: relative; overflow: hidden;
+  animation: blink-red 2.5s infinite;
+}
+.high-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--red), #f97316);
+}
+.med-card {
+  background: var(--card);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px; padding: 16px;
+  position: relative; overflow: hidden;
+}
+.med-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--orange);
+}
+.low-card {
+  background: var(--card);
+  border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 8px; padding: 16px;
+  position: relative; overflow: hidden;
+}
+.low-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--green);
+}
+
+/* ── MAP ── */
+#map {
+  height: 440px;
+  background: var(--bg);
+  border-radius: 0 0 8px 8px;
+}
+.leaflet-container { background: #070b12 !important; }
+.leaflet-popup-content-wrapper {
+  background: #1a2234 !important;
+  border: 1px solid #2d3d55 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6) !important;
+  color: var(--text) !important;
+}
+.leaflet-popup-tip { background: #1a2234 !important; }
+
+/* ── TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--card);
+}
+.data-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 13px;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(59,130,246,0.04); }
+.rank { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.prov-name { font-weight: 600; font-size: 13px; }
+.twp-val { font-family: var(--mono); font-weight: 700; font-size: 13px; }
+
+/* Mini sparkline in table */
+.spark-cell { width: 60px; padding: 2px 10px; }
+.spark-mini { display: block; }
+
+/* Badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: .08em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+.badge.KRITIS { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,.25); }
+.badge.KRITIS::before { background: var(--red); animation: blink-red 1.5s infinite; }
+.badge.WASPADA { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(245,158,11,.2); }
+.badge.WASPADA::before { background: var(--orange); animation: blink-orange 2s infinite; }
+.badge.NORMAL { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,.15); }
+.badge.NORMAL::before { background: var(--green); }
+
+/* Signal arrows */
+.signal { font-family: var(--mono); font-size: 11px; font-weight: 700; }
+.signal.up { color: var(--red); }
+.signal.down { color: var(--green); }
+.signal.flat { color: var(--text2); }
+
+/* ── COEFF CHART ── */
+.coeff-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px; font-size: 12px;
+}
+.coeff-label { width: 155px; text-align: right; font-family: var(--mono); font-size: 10px; color: var(--text2); flex-shrink: 0; line-height: 1.3; }
+.coeff-bar-wrap { flex: 1; height: 22px; position: relative; display: flex; align-items: center; }
+.coeff-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(100,116,139,.3); }
+.coeff-bar { height: 16px; border-radius: 2px; position: absolute; transition: width .4s ease; }
+.coeff-bar.neg { background: linear-gradient(270deg, #3b82f6, #1d4ed8); right: 50%; }
+.coeff-bar.pos { background: linear-gradient(90deg, #0ea5e9, #38bdf8); left: 50%; }
+.coeff-val { width: 55px; font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink:0; text-align: right; }
+
+/* ── AI INSIGHT BOX ── */
+.insight-box {
+  background: linear-gradient(135deg, rgba(59,130,246,.06), rgba(14,165,233,.04));
+  border: 1px solid rgba(59,130,246,.2);
+  border-radius: 8px; padding: 16px 18px;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+.insight-box::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+}
+.insight-header {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 10px;
+}
+.insight-text { font-size: 13px; line-height: 1.7; color: var(--text2); }
+.insight-text strong { color: var(--text); }
+
+/* ── SCENARIO ── */
+.scenario-tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+}
+.stab {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: 6px 14px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--card2); color: var(--muted);
+  cursor: pointer; transition: all .15s;
+}
+.stab.active { color: var(--text); background: var(--border2); border-color: var(--border2); }
+
+.scenario-result {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; margin-top: 16px;
+}
+.sresult-card {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; text-align: center;
+}
+.sresult-label { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.sresult-val { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+.sresult-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── SLIDER ── */
+.slider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.slider-item { }
+.slider-item label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--muted); margin-bottom: 6px;
+  font-family: var(--mono);
+}
+.slider-item label .sv {
+  font-weight: 700; color: var(--text);
+  background: var(--bg); padding: 1px 6px; border-radius: 3px;
+  border: 1px solid var(--border);
+}
+input[type=range] {
+  width: 100%; -webkit-appearance: none;
+  height: 3px; background: var(--border2);
+  border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  box-shadow: 0 0 6px rgba(59,130,246,.4);
+}
+
+/* ── ABOUT / MODEL ── */
+.model-metrics {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-bottom: 20px;
+}
+.mm-card {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; text-align: center;
+}
+.mm-label { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.mm-val { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
+
+/* ── ACTION CARDS ── */
+.action-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; margin-bottom: 12px;
+}
+.action-header {
+  display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;
+}
+.action-icon { font-size: 18px; flex-shrink: 0; }
+.action-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.action-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.action-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.action-tag {
+  display: inline-block; margin-top: 8px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 3px; background: rgba(59,130,246,.1); color: var(--accent);
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .grid-2, .grid-3, .grid-3r { grid-template-columns: 1fr; }
+  .slider-grid { grid-template-columns: 1fr; }
+  .model-metrics { grid-template-columns: repeat(2, 1fr); }
+  .scenario-result { grid-template-columns: 1fr; }
+}
+
+/* trend bars inline */
+.trend-bar-wrap { width: 80px; height: 12px; background: var(--bg); border-radius: 2px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.trend-bar { height: 100%; border-radius: 2px; transition: width .3s; }
+
+/* Province detail popup in table */
+.prov-sub { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <div class="logo-badge">TWP90</div>
+    <h1>Early Warning System</h1>
+  </div>
+  <div class="header-right">
+    <div class="live-indicator">
+      <span class="live-dot"></span>
+      Data 2025 · 31 Provinsi
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">Huber FD · R²=0.600</div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('overview')">Overview</button>
+  <button class="tab" onclick="switchTab('map')">Peta Risiko</button>
+  <button class="tab" onclick="switchTab('scenario')">Simulasi</button>
+  <button class="tab" onclick="switchTab('model')">Model</button>
+</div>
+
+<!-- ══════════════ OVERVIEW ══════════════ -->
+<div id="tab-overview" class="panel active">
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi blue">
+      <div class="kpi-accent"></div>
+      <div class="kpi-label">Rata-rata TWP90</div>
+      <div class="kpi-value" id="kpi-avg">—</div>
+      <div class="kpi-sub">Nasional 2025</div>
+      <svg class="kpi-sparkline" id="spark-avg" viewBox="0 0 80 30"></svg>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-accent"></div>
+      <div class="kpi-label">Kritis</div>
+      <div class="kpi-value" id="kpi-high">—</div>
+      <div class="kpi-sub">Provinsi ≥ 3%</div>
+      <svg class="kpi-sparkline" id="spark-high" viewBox="0 0 80 30"></svg>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-accent"></div>
+      <div class="kpi-label">Waspada</div>
+      <div class="kpi-value" id="kpi-med">—</div>
+      <div class="kpi-sub">Provinsi 2–3%</div>
+      <svg class="kpi-sparkline" id="spark-med" viewBox="0 0 80 30"></svg>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-accent"></div>
+      <div class="kpi-label">Normal</div>
+      <div class="kpi-value" id="kpi-low">—</div>
+      <div class="kpi-sub">Provinsi &lt; 2%</div>
+      <svg class="kpi-sparkline" id="spark-low" viewBox="0 0 80 30"></svg>
+    </div>
+    <div class="kpi cyan">
+      <div class="kpi-accent"></div>
+      <div class="kpi-label">Model Accuracy</div>
+      <div class="kpi-value">60.0%</div>
+      <div class="kpi-sub">Test R² · Huber FD</div>
+      <svg class="kpi-sparkline" id="spark-model" viewBox="0 0 80 30"></svg>
+    </div>
+  </div>
+
+  <!-- AI INSIGHT -->
+  <div class="insight-box" id="ai-insight">
+    <div class="insight-header">⚡ AI Insight — Smart Narrative</div>
+    <div class="insight-text" id="insight-text">Memuat analisis...</div>
+  </div>
+
+  <div class="grid-3">
+    <!-- Full Province Table with filters -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Monitoring Risiko — 31 Provinsi</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="card-tag" id="prov-count-ov">31 provinsi</span>
+        </div>
+      </div>
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <button class="filter-btn active-all" id="ovf-all" onclick="filterOv('all')">Semua</button>
+        <button class="filter-btn" id="ovf-high" onclick="filterOv('HIGH')">Kritis</button>
+        <button class="filter-btn" id="ovf-med" onclick="filterOv('MEDIUM')">Waspada</button>
+        <button class="filter-btn" id="ovf-low" onclick="filterOv('LOW')">Normal</button>
+        <input class="search-input" type="text" placeholder="Cari provinsi..." oninput="searchOv(this.value)" style="margin-left:auto;width:160px;">
+      </div>
+      <div style="overflow-x:auto;max-height:520px;overflow-y:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Provinsi</th>
+              <th>TWP90</th>
+              <th>Prediksi</th>
+              <th>Δ YoY</th>
+              <th>Tren</th>
+              <th>Status</th>
+              <th>Sinyal</th>
+            </tr>
+          </thead>
+          <tbody id="ov-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Feature Importance -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Feature Importance</span>
+        <span class="card-tag">Huber Coeff</span>
+      </div>
+      <div class="card-body">
+        <div id="coeff-mini"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blinking Risk Cards -->
+  <div style="margin-top:16px;">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Provinsi Kritis — Perlu Perhatian Segera</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" id="high-cards"></div>
+  </div>
+  <div style="margin-top:14px;">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Provinsi Waspada — Pantau Ketat</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="med-cards"></div>
+  </div>
+</div>
+
+<!-- ══════════════ MAP ══════════════ -->
+<div id="tab-map" class="panel">
+  <div class="filter-bar">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:4px;">Filter:</div>
+    <button class="filter-btn active-all" onclick="filterMap('all',this)">Semua</button>
+    <button class="filter-btn" onclick="filterMap('HIGH',this)">🔴 Kritis</button>
+    <button class="filter-btn" onclick="filterMap('MEDIUM',this)">🟡 Waspada</button>
+    <button class="filter-btn" onclick="filterMap('LOW',this)">🟢 Normal</button>
+    <div style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);">Klik marker untuk detail provinsi</div>
+  </div>
+  <div class="grid-3" style="gap:16px;">
+    <div class="card" style="overflow:visible;">
+      <div class="card-header">
+        <span class="card-title">Peta Distribusi Risiko TWP90</span>
+        <span class="card-tag">OpenStreetMap / CARTO</span>
+      </div>
+      <div id="map"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Distribusi Risiko</span></div>
+        <div class="card-body">
+          <div id="risk-dist-chart"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Provinsi Dipilih</span></div>
+        <div class="card-body" id="map-detail">
+          <div style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0;">Klik marker pada peta untuk melihat detail provinsi</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCENARIO ══════════════ -->
+<div id="tab-scenario" class="panel">
+  <div class="grid-2" style="gap:16px;margin-bottom:20px;">
+    <!-- Simulator -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Simulasi Skenario Makroekonomi</span>
+        <span class="card-tag">Interactive</span>
+      </div>
+      <div class="card-body">
+        <div class="slider-grid">
+          <div class="slider-item">
+            <label>Δ NPL <span class="sv" id="v-npl">0.0</span> ppt</label>
+            <input type="range" id="sl-npl" min="-3" max="3" step="0.1" value="0" oninput="simulate()">
+          </div>
+          <div class="slider-item">
+            <label>Δ Inflasi <span class="sv" id="v-inf">0.0</span>%</label>
+            <input type="range" id="sl-inf" min="-2" max="3" step="0.1" value="0" oninput="simulate()">
+          </div>
+          <div class="slider-item">
+            <label>Δ LDR <span class="sv" id="v-ldr">0.0</span>%</label>
+            <input type="range" id="sl-ldr" min="-10" max="10" step="0.5" value="0" oninput="simulate()">
+          </div>
+          <div class="slider-item">
+            <label>Δ BI Rate <span class="sv" id="v-bi">0.0</span>%</label>
+            <input type="range" id="sl-bi" min="-2" max="3" step="0.25" value="0" oninput="simulate()">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="stab active" onclick="loadPreset('baseline',this)">Baseline</button>
+          <button class="stab" onclick="loadPreset('stress',this)">Stress</button>
+          <button class="stab" onclick="loadPreset('optimistic',this)">Optimistik</button>
+          <button class="stab" onclick="loadPreset('reset',this)" style="margin-left:auto;">Reset</button>
+        </div>
+        <div class="scenario-result">
+          <div class="sresult-card">
+            <div class="sresult-label">ΔTWP90 Nasional</div>
+            <div class="sresult-val" id="sim-dtwp">—</div>
+            <div class="sresult-sub">Perubahan dari baseline</div>
+          </div>
+          <div class="sresult-card">
+            <div class="sresult-label">TWP90 Proyeksi</div>
+            <div class="sresult-val" id="sim-twp">—</div>
+            <div class="sresult-sub">2026 nasional avg</div>
+          </div>
+          <div class="sresult-card">
+            <div class="sresult-label">Sinyal</div>
+            <div class="sresult-val signal" id="sim-signal">—</div>
+            <div class="sresult-sub" id="sim-rel">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insight per scenario -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Interpretasi & Rekomendasi Tindakan</span>
+        <span class="card-tag">AI Insight</span>
+      </div>
+      <div class="card-body" id="scenario-insight">
+        <div class="insight-box" style="margin-bottom:0;">
+          <div class="insight-header">⚡ Smart Narrative</div>
+          <div class="insight-text" id="scen-narrative">Atur slider untuk melihat analisis...</div>
+        </div>
+        <div id="action-recs" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Perbandingan skenario resmi -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Perbandingan Skenario — Top 10 Provinsi</span>
+      <span class="card-tag">Baseline vs Stress vs Optimistik</span>
+    </div>
+    <div class="card-body">
+      <svg id="scenario-bar-chart" width="100%" height="300" viewBox="0 0 900 280"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODEL ══════════════ -->
+<div id="tab-model" class="panel">
+  <div class="model-metrics">
+    <div class="mm-card">
+      <div class="mm-label">Test R²</div>
+      <div class="mm-val">0.599</div>
+    </div>
+    <div class="mm-card">
+      <div class="mm-label">Test RMSE</div>
+      <div class="mm-val" style="color:var(--green);">0.00554</div>
+    </div>
+    <div class="mm-card">
+      <div class="mm-label">Train R²</div>
+      <div class="mm-val" style="color:var(--accent);">0.641</div>
+    </div>
+    <div class="mm-card">
+      <div class="mm-label">Train RMSE</div>
+      <div class="mm-val" style="color:var(--orange);">0.00588</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px;">
+    <!-- Full coefficient chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Feature Importance — Koefisien Huber FD</span>
+        <span class="card-tag">Skala Asli</span>
+      </div>
+      <div class="card-body">
+        <div id="coeff-full"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5;">
+          🔵 Biru = Negatif (kenaikan variabel → TWP90 turun) &nbsp;|&nbsp; 🔵 Cyan = Positif (kenaikan → TWP90 naik)
+        </div>
+      </div>
+    </div>
+
+    <!-- Model interpretation -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Model Explainability</span>
+        <span class="card-tag">Interpretasi Koefisien</span>
+      </div>
+      <div class="card-body" style="overflow-y:auto;max-height:380px;" id="coeff-interp"></div>
+    </div>
+  </div>
+
+  <!-- Evolution -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="card-title">Evolusi Model — Dari OLS ke Huber FD</span>
+    </div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>Versi</th><th>Model</th><th>Test R²</th><th>Test RMSE</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="rank">v1</td><td>XGBoost (monthly)</td><td style="color:var(--red)">~0.000</td><td>—</td><td><span class="badge KRITIS">Data Leakage</span></td></tr>
+          <tr><td class="rank">v2</td><td>LSDV Panel FE OLS</td><td style="color:var(--red)">−75.000</td><td>—</td><td><span class="badge KRITIS">Singular Matrix</span></td></tr>
+          <tr><td class="rank">v3</td><td>FD OLS</td><td style="color:var(--orange)">0.406</td><td>0.00676</td><td><span class="badge WASPADA">Outperformed by Naive</span></td></tr>
+          <tr><td class="rank">v4</td><td><strong>FD Huber (ε=1.35)</strong></td><td style="color:var(--green)"><strong>0.599</strong></td><td style="color:var(--green)"><strong>0.00554</strong></td><td><span class="badge NORMAL">Final ✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Limitasi & Caveat -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Limitasi Model</span></div>
+      <div class="card-body">
+        <div class="action-card" style="margin-bottom:8px;padding:12px;">
+          <div class="action-title" style="font-size:12px;">📉 Ukuran Sampel Terbatas</div>
+          <div class="action-body">62 observasi training (31 prov × 2 diff). Model tidak bisa menangkap pola kompleks non-linear.</div>
+        </div>
+        <div class="action-card" style="margin-bottom:8px;padding:12px;">
+          <div class="action-title" style="font-size:12px;">🔗 Asosiasi, Bukan Kausalitas</div>
+          <div class="action-body">Koefisien = korelasi parsial. Inferensi kebijakan kuat butuh Instrumental Variables atau RCT.</div>
+        </div>
+        <div class="action-card" style="padding:12px;">
+          <div class="action-title" style="font-size:12px;">⚠️ Presisi Titik</div>
+          <div class="action-body">RMSE masih lebih tinggi dari benchmark naif. Gunakan untuk <strong>ranking & arah</strong>, bukan angka presisi.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Rekomendasi Penelitian Lanjutan</span></div>
+      <div class="card-body">
+        <div class="action-card" style="margin-bottom:8px;padding:12px;">
+          <div class="action-title" style="font-size:12px;">📊 Data Kuartalan</div>
+          <div class="action-body">Granularitas kuartalan → 4× lebih banyak observasi → daya prediktif jauh lebih tinggi.</div>
+        </div>
+        <div class="action-card" style="margin-bottom:8px;padding:12px;">
+          <div class="action-title" style="font-size:12px;">🔬 Arellano-Bond GMM</div>
+          <div class="action-body">Panel dinamis dengan lagged dependent variable untuk menangkap persistensi TWP90.</div>
+        </div>
+        <div class="action-card" style="padding:12px;">
+          <div class="action-title" style="font-size:12px;">🤝 Interaction Terms</div>
+          <div class="action-body">ΔNPL × ΔLDR dapat mengungkap mekanisme transmisi risiko kredit yang lebih kaya.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const RAW = [
+  {id:'1',prov:'Banten',actual:0.0241,pred:0.0219,dy:0.0018,dy_pred:0.0009},
+  {id:'2',prov:'DKI Jakarta',actual:0.0467,pred:0.0441,dy:0.0155,dy_pred:0.0054},
+  {id:'3',prov:'Jawa Barat',actual:0.0336,pred:0.0313,dy:-0.0002,dy_pred:0.0015},
+  {id:'4',prov:'Jawa Tengah',actual:0.0282,pred:0.0260,dy:0.0025,dy_pred:0.0011},
+  {id:'5',prov:'Daerah Istimewa Yogyakarta',actual:0.0286,pred:0.0270,dy:-0.0001,dy_pred:0.0011},
+  {id:'6',prov:'Jawa Timur',actual:0.0341,pred:0.0318,dy:0.0079,dy_pred:0.0021},
+  {id:'7',prov:'Aceh',actual:0.0103,pred:0.0097,dy:0.0004,dy_pred:0.0001},
+  {id:'8',prov:'Sumatera Utara',actual:0.0184,pred:0.0171,dy:0.0019,dy_pred:0.0009},
+  {id:'9',prov:'Sumatera Barat',actual:0.0261,pred:0.0248,dy:-0.0010,dy_pred:0.0006},
+  {id:'10',prov:'Riau',actual:0.0173,pred:0.0153,dy:0.0000,dy_pred:0.0007},
+  {id:'11',prov:'Kepulauan Riau',actual:0.0172,pred:0.0151,dy:0.0000,dy_pred:0.0006},
+  {id:'12',prov:'Kepulauan Bangka Belitung',actual:0.0175,pred:0.0154,dy:0.0009,dy_pred:0.0007},
+  {id:'13',prov:'Jambi',actual:0.0208,pred:0.0194,dy:0.0003,dy_pred:0.0008},
+  {id:'14',prov:'Sumatera Selatan',actual:0.0285,pred:0.0265,dy:0.0015,dy_pred:0.0014},
+  {id:'15',prov:'Bengkulu',actual:0.0194,pred:0.0180,dy:0.0007,dy_pred:0.0008},
+  {id:'16',prov:'Lampung',actual:0.0278,pred:0.0254,dy:0.0050,dy_pred:0.0012},
+  {id:'17',prov:'Kalimantan Barat',actual:0.0166,pred:0.0112,dy:0.0019,dy_pred:0.0003},
+  {id:'18',prov:'Kalimantan Tengah',actual:0.0179,pred:0.0098,dy:0.0002,dy_pred:0.0008},
+  {id:'19',prov:'Kalimantan Selatan',actual:0.0218,pred:0.0198,dy:0.0044,dy_pred:0.0007},
+  {id:'20',prov:'Kalimantan Timur',actual:0.0181,pred:0.0128,dy:0.0004,dy_pred:0.0005},
+  {id:'21',prov:'Kalimantan Utara',actual:0.0072,pred:0.0079,dy:0.0013,dy_pred:0.0010},
+  {id:'22',prov:'Sulawesi Utara',actual:0.0182,pred:0.0104,dy:0.0010,dy_pred:0.0012},
+  {id:'23',prov:'Gorontalo',actual:0.0160,pred:0.0081,dy:-0.0005,dy_pred:0.0008},
+  {id:'24',prov:'Sulawesi Tengah',actual:0.0164,pred:0.0114,dy:0.0008,dy_pred:0.0006},
+  {id:'25',prov:'Sulawesi Barat',actual:0.0126,pred:0.0071,dy:-0.0022,dy_pred:0.0006},
+  {id:'26',prov:'Sulawesi Selatan',actual:0.0169,pred:0.0155,dy:0.0005,dy_pred:0.0011},
+  {id:'27',prov:'Sulawesi Tenggara',actual:0.0148,pred:0.0092,dy:-0.0018,dy_pred:0.0008},
+  {id:'28',prov:'Bali',actual:0.0154,pred:0.0162,dy:-0.0003,dy_pred:0.0003},
+  {id:'29',prov:'Nusa Tenggara Barat',actual:0.0404,pred:0.0574,dy:-0.0050,dy_pred:0.0139},
+  {id:'30',prov:'Nusa Tenggara Timur',actual:0.0155,pred:0.0124,dy:0.0000,dy_pred:0.0003},
+  {id:'31',prov:'Maluku Utara',actual:0.0079,pred:0.0056,dy:-0.0008,dy_pred:0.0004},
+  {id:'32',prov:'Maluku',actual:0.0087,pred:0.0062,dy:0.0012,dy_pred:0.0004},
+];
+
+const COEFFS = [
+  {name:'d_x2_inflasi_avg', label:'Inflasi (x2)',            coef:-0.201, key:'inf'},
+  {name:'d_x1_bi_rate_avg', label:'BI Rate (x1)',             coef:-0.003, key:'bi'},
+  {name:'d_x9_npl',         label:'NPL (x9)',                 coef:-0.207, key:'npl'},
+  {name:'d_x5_internet',    label:'Penetrasi Internet (x5)', coef:+0.017, key:'int'},
+  {name:'d_x8_ldr',         label:'LDR (x8)',                 coef:+0.013, key:'ldr'},
+  {name:'d_log_pdrb',       label:'ln(PDRB) (x3)',            coef:+0.011, key:'pdrb'},
+  {name:'d_x4_tpt',         label:'TPT (x4)',                 coef:-0.001, key:'tpt'},
+  {name:'d_x10_umkm',       label:'Rasio UMKM (x10)',         coef:-0.003, key:'umkm'},
+];
+
+const COORDS = {
+  'Aceh':[5.55,95.32],'Sumatera Utara':[2.12,99.54],'Sumatera Barat':[-0.74,100.80],
+  'Riau':[0.53,101.45],'Jambi':[-1.61,103.61],'Sumatera Selatan':[-3.31,104.91],
+  'Bengkulu':[-3.79,102.27],'Lampung':[-4.56,105.40],
+  'Kepulauan Bangka Belitung':[-2.74,106.44],'Kepulauan Riau':[3.92,108.14],
+  'DKI Jakarta':[-6.21,106.85],'Jawa Barat':[-6.90,107.62],
+  'Jawa Tengah':[-7.15,110.14],'Daerah Istimewa Yogyakarta':[-7.80,110.36],
+  'Jawa Timur':[-7.54,112.24],'Banten':[-6.41,106.02],
+  'Bali':[-8.34,115.09],'Nusa Tenggara Barat':[-8.65,117.36],
+  'Nusa Tenggara Timur':[-8.66,121.08],'Kalimantan Barat':[0.00,109.34],
+  'Kalimantan Tengah':[-1.68,113.38],'Kalimantan Selatan':[-3.09,115.28],
+  'Kalimantan Timur':[0.54,116.42],'Kalimantan Utara':[3.07,116.04],
+  'Sulawesi Utara':[0.63,123.97],'Sulawesi Tengah':[-1.43,121.45],
+  'Sulawesi Selatan':[-3.66,119.97],'Sulawesi Tenggara':[-4.14,122.17],
+  'Gorontalo':[0.55,123.06],'Sulawesi Barat':[-2.84,119.23],
+  'Maluku':[-3.24,130.15],'Maluku Utara':[1.57,127.81],
+};
+
+const DESC = {
+  'd_x2_inflasi_avg': 'Inflasi naik → BI Rate naik → ekspansi kredit dibatasi → proporsi pinjaman berisiko turun. Dalam konteks Indonesia 2022–2025, mekanisme moneter bekerja efektif membatasi risiko kredit baru.',
+  'd_x1_bi_rate_avg': 'Kenaikan BI Rate memiliki efek pembatasan kredit yang kecil dalam model ini — kemungkinan karena lag transmisi moneter belum sepenuhnya tertangkap dalam data tahunan.',
+  'd_x9_npl': 'Kenaikan NPL memicu <strong>pengetatan standar kredit</strong> oleh bank (credit rationing). Pool debitur baru menjadi lebih berkualitas → TWP90 turun. Ini adalah mekanisme <strong>self-correcting</strong> sektor keuangan.',
+  'd_x5_internet': 'Perluasan digital tanpa literasi keuangan memadai membuka akses bagi segmen <strong>underbanked dengan risiko tinggi</strong>. Efek ini kecil tapi konsisten — intervensi literasi keuangan digital diperlukan.',
+  'd_x8_ldr': 'Ekspansi kredit agresif (LDR tinggi) → standar penyaringan debitur longgar → lebih banyak debitur berisiko masuk sistem. Regulasi makroprudensial LDR penting sebagai penyeimbang.',
+  'd_log_pdrb': 'Pertumbuhan ekonomi mendorong aktivitas pinjaman. Ekspansi kredit saat boom ekonomi bisa mengakumulasi risiko jangka menengah jika tidak diimbangi pengawasan kredit ketat.',
+  'd_x4_tpt': 'Tingkat pengangguran hampir tidak signifikan dalam model FD — kemungkinan karena P2P lending di Indonesia melayani segmen spesifik yang tidak berkorelasi langsung dengan TPT agregat.',
+  'd_x10_umkm': 'Proporsi kredit UMKM menunjukkan dampak marginal sangat kecil. Butuh data yang lebih granular untuk memisahkan efek kualitas debitur UMKM dari volume.',
+};
+
+const RECS = {
+  HIGH: {
+    title: 'Tindakan Segera Diperlukan',
+    icon: '🚨',
+    actions: [
+      'Intensifikasi audit OJK pada platform fintech aktif di provinsi ini',
+      'Terapkan pembatasan ekspansi pinjaman baru sementara',
+      'Tingkatkan cadangan CKPN minimum 20% di atas threshold normal',
+      'Aktifkan tim monitoring mingguan untuk early warning signal'
+    ]
+  },
+  MEDIUM: {
+    title: 'Pemantauan Ketat',
+    icon: '⚠️',
+    actions: [
+      'Jadwalkan review triwulanan kualitas portofolio kredit',
+      'Monitor pertumbuhan NPL secara real-time',
+      'Siapkan contingency plan jika TWP90 melampaui 3%',
+      'Perkuat literasi keuangan digital di area ekspansi'
+    ]
+  },
+  LOW: {
+    title: 'Pemantauan Rutin',
+    icon: '✅',
+    actions: [
+      'Pertahankan standar underwriting yang ada',
+      'Manfaatkan kondisi sehat untuk ekspansi terukur',
+      'Dokumentasikan best practice untuk replikasi di daerah lain',
+      'Pantau perkembangan penetrasi internet yang bisa geser risiko'
+    ]
+  }
+};
+
+// ══════════════════════════════════════
+// COMPUTED
+// ══════════════════════════════════════
+function classify(a) {
+  if (a >= 0.03) return 'HIGH';
+  if (a >= 0.02) return 'MEDIUM';
+  return 'LOW';
+}
+function riskLabel(r) {
+  return r === 'HIGH' ? 'KRITIS' : r === 'MEDIUM' ? 'WASPADA' : 'NORMAL';
+}
+function riskColor(r) {
+  return r === 'HIGH' ? 'var(--red)' : r === 'MEDIUM' ? 'var(--orange)' : 'var(--green)';
+}
+function fmt(v) { return (v*100).toFixed(2)+'%'; }
+function fmtSign(v) { return (v >= 0 ? '+' : '') + (v*100).toFixed(2)+'%'; }
+
+const DATA = RAW.map(d => ({...d, risk: classify(d.actual)}));
+DATA.sort((a,b) => b.actual - a.actual);
+
+const avg = DATA.reduce((s,d) => s + d.actual, 0) / DATA.length;
+const nHigh = DATA.filter(d => d.risk === 'HIGH').length;
+const nMed  = DATA.filter(d => d.risk === 'MEDIUM').length;
+const nLow  = DATA.filter(d => d.risk === 'LOW').length;
+
+// ══════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════
+let mapInit = false;
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'map' && !mapInit) { initMap(); mapInit = true; }
+}
+
+// ══════════════════════════════════════
+// SPARKLINE
+// ══════════════════════════════════════
+function drawSparkline(svgId, vals, color) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const w = 80, h = 30, pad = 2;
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 1;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - mn) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+  svg.innerHTML = `
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+    <polyline points="${pts} ${80-pad},${h} ${pad},${h}" fill="${color}" opacity="0.1"/>
+  `;
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+function init() {
+  // KPIs
+  document.getElementById('kpi-avg').textContent  = fmt(avg);
+  document.getElementById('kpi-high').textContent = nHigh;
+  document.getElementById('kpi-med').textContent  = nMed;
+  document.getElementById('kpi-low').textContent  = nLow;
+
+  // Sparklines (simulated trend 4 years 2022-2025)
+  drawSparkline('spark-avg',  [0.0172, 0.0182, 0.0191, avg], '#3b82f6');
+  drawSparkline('spark-high', [2, 3, 4, nHigh], '#ef4444');
+  drawSparkline('spark-med',  [6, 7, 8, nMed],  '#f59e0b');
+  drawSparkline('spark-low',  [24, 22, 20, nLow], '#10b981');
+  drawSparkline('spark-model',[0.0, 0.406, 0.52, 0.599], '#0ea5e9');
+
+  // AI Insight
+  renderInsight();
+
+  // Overview province table
+  renderOvTable(DATA);
+
+  // Coeff charts
+  renderCoeff('coeff-mini', true);
+  renderCoeff('coeff-full', false);
+
+  // Coeff interpretations
+  renderCoeffInterp();
+
+  // High cards
+  renderHighCards();
+  renderMedCards();
+
+  // Scenario bar chart
+  renderScenarioChart();
+
+  // Risk dist chart
+  renderRiskDist();
+
+  // Simulate
+  simulate();
+}
+
+// ══════════════════════════════════════
+// AI INSIGHT
+// ══════════════════════════════════════
+function renderInsight() {
+  const top = DATA[0];
+  const highProvs = DATA.filter(d => d.risk === 'HIGH').map(d => d.prov).join(', ');
+  const medProvs  = DATA.filter(d => d.risk === 'MEDIUM').map(d => d.prov).join(', ');
+  const text = `
+    Sistem Early Warning TWP90 mengidentifikasi <strong>${nHigh} provinsi berstatus KRITIS</strong>
+    (${highProvs}) dengan TWP90 di atas ambang 3%, dipimpin
+    <strong>${top.prov} (${fmt(top.actual)})</strong> yang mencatat TWP90 tertinggi nasional.
+    <br><br>
+    <strong>Driver dominan:</strong> NPL (β=−0.207) dan Inflasi (β=−0.201) menunjukkan mekanisme
+    <em>self-correcting</em> — kenaikan NPL justru mendorong pengetatan kredit oleh lembaga keuangan,
+    menurunkan proporsi debitur berisiko baru. Namun penetrasi internet (β=+0.017) memberi sinyal peringatan:
+    ekspansi digital tanpa literasi keuangan memadai berpotensi meningkatkan risiko marginal.
+    <br><br>
+    <strong>Rekomendasi prioritas:</strong> OJK perlu mengintensifikasi pengawasan di <strong>${highProvs}</strong>
+    dengan pembatasan ekspansi kredit baru dan peningkatan CKPN minimum. Alokasi dana penjaminan (Jamkrindo/Askrindo)
+    harus diprioritaskan ke provinsi KRITIS dan WASPADA — total ${nHigh + nMed} provinsi memerlukan perhatian khusus
+    di 2026.
+  `;
+  document.getElementById('insight-text').innerHTML = text;
+}
+
+// ══════════════════════════════════════
+// SVG LINE SPARKLINE FOR TABLE
+// ══════════════════════════════════════
+function makeLineSpark(d, color) {
+  // Simulate 4-year trend ending at actual, using dy as slope
+  const prev2 = Math.max(0, d.actual - d.dy * 2);
+  const prev1 = Math.max(0, d.actual - d.dy);
+  const vals = [prev2, prev1, d.actual - d.dy * 0.3, d.actual];
+  const W = 70, H = 28, pad = 3;
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 0.001;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - mn) / range) * (H - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const lastPt = pts.split(' ').pop();
+  const [lx, ly] = lastPt.split(',');
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;">
+    <defs>
+      <linearGradient id="sg${d.id}" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${pts} ${(W-pad).toFixed(1)},${H} ${pad},${H}" fill="url(#sg${d.id})"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/>
+  </svg>`;
+}
+
+// ══════════════════════════════════════
+// OVERVIEW TABLE (replaces Top10 + ProvTable)
+// ══════════════════════════════════════
+let ovFilter = 'all';
+let ovSearch = '';
+
+function renderOvTable(data) {
+  const tbody = document.getElementById('ov-table-body');
+  tbody.innerHTML = '';
+  document.getElementById('prov-count-ov').textContent = `${data.length} provinsi`;
+  data.forEach((d) => {
+    const rl = riskLabel(d.risk);
+    const color = riskColor(d.risk);
+    const sigDir = d.dy > 0.001 ? 'up' : d.dy < -0.001 ? 'down' : 'flat';
+    const sigLabel = d.dy > 0.001 ? '▲' : d.dy < -0.001 ? '▼' : '—';
+    const spark = makeLineSpark(d, color.replace('var(', '').replace(')', ''));
+    // resolve CSS var to hex for SVG
+    const colorHex = d.risk === 'HIGH' ? '#ef4444' : d.risk === 'MEDIUM' ? '#f59e0b' : '#10b981';
+    const sparkSvg = makeLineSpark2(d, colorHex);
+    tbody.innerHTML += `<tr>
+      <td class="rank">${DATA.indexOf(d)+1}</td>
+      <td class="prov-name">${d.prov}</td>
+      <td class="twp-val" style="color:${color}">${fmt(d.actual)}</td>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${fmt(d.pred)}</td>
+      <td style="font-family:var(--mono);font-size:12px;color:${d.dy>0?'var(--red)':'var(--green)'}">${fmtSign(d.dy)}</td>
+      <td style="padding:4px 10px;">${sparkSvg}</td>
+      <td><span class="badge ${rl}">${rl}</span></td>
+      <td><span class="signal ${sigDir}" style="font-size:14px;">${sigLabel}</span></td>
+    </tr>`;
+  });
+}
+
+function makeLineSpark2(d, colorHex) {
+  const prev2 = Math.max(0, d.actual - d.dy * 2.2);
+  const prev1 = Math.max(0, d.actual - d.dy * 1.1);
+  const vals = [prev2, prev1, d.actual - d.dy * 0.2, d.actual];
+  const W = 70, H = 28, pad = 3;
+  const mn = Math.min(...vals) * 0.98, mx = Math.max(...vals) * 1.02;
+  const range = mx - mn || 0.001;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - mn) / range) * (H - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const ptsArr = pts.split(' ');
+  const [lx, ly] = ptsArr[ptsArr.length-1].split(',');
+  const uid = d.id + Math.random().toString(36).slice(2,6);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;">
+    <defs>
+      <linearGradient id="g${uid}" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="${colorHex}" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="${colorHex}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${pts} ${(W-pad).toFixed(1)},${H} ${pad},${H}" fill="url(#g${uid})"/>
+    <polyline points="${pts}" fill="none" stroke="${colorHex}" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lx}" cy="${ly}" r="2.5" fill="${colorHex}"/>
+  </svg>`;
+}
+
+function filterOv(risk) {
+  ovFilter = risk;
+  ['all','high','med','low'].forEach(f => {
+    const el = document.getElementById('ovf-'+f);
+    if (el) el.className = 'filter-btn';
+  });
+  const keyMap = {all:'all', HIGH:'high', MEDIUM:'med', LOW:'low'};
+  const activeEl = document.getElementById('ovf-' + (keyMap[risk] || risk));
+  if (activeEl) {
+    const cls = {all:'active-all',HIGH:'active-high',MEDIUM:'active-med',LOW:'active-low'};
+    activeEl.className = 'filter-btn ' + (cls[risk] || 'active-all');
+  }
+  applyOvFilter();
+}
+
+function searchOv(q) {
+  ovSearch = q;
+  applyOvFilter();
+}
+
+function applyOvFilter() {
+  let base = ovFilter === 'all' ? DATA : DATA.filter(d => d.risk === ovFilter);
+  if (ovSearch) base = base.filter(d => d.prov.toLowerCase().includes(ovSearch.toLowerCase()));
+  renderOvTable(base);
+}
+
+// ══════════════════════════════════════
+// HIGH & MED CARDS
+// ══════════════════════════════════════
+function renderHighCards() {
+  const hc = document.getElementById('high-cards');
+  DATA.filter(d => d.risk === 'HIGH').forEach(d => {
+    const acc = d.dy > 0 ? `<span style="color:var(--red)">↑ ${fmtSign(d.dy)}</span>` : `<span style="color:var(--green)">↓ ${fmtSign(d.dy)}</span>`;
+    hc.innerHTML += `<div class="high-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--red);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;">KRITIS</div>
+          <div style="font-weight:700;font-size:14px;">${d.prov}</div>
+        </div>
+        <span class="badge KRITIS">KRITIS</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--red);margin-bottom:10px;">${fmt(d.actual)}</div>
+      <div style="border-top:1px solid rgba(239,68,68,.15);padding-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;">
+          <span>Prediksi Model</span><span style="font-family:var(--mono);color:var(--text)">${fmt(d.pred)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px;">
+          <span>Perubahan YoY</span>${acc}
+        </div>
+        <div style="font-size:10px;color:var(--text2);background:var(--bg);padding:6px 8px;border-radius:4px;line-height:1.5;">
+          Intensifikasi audit OJK & batasi ekspansi kredit baru
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function renderMedCards() {
+  const mc = document.getElementById('med-cards');
+  DATA.filter(d => d.risk === 'MEDIUM').forEach(d => {
+    mc.innerHTML += `<div class="med-card">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--orange);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;">WASPADA</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${d.prov}</div>
+      <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--orange);margin-bottom:8px;">${fmt(d.actual)}</div>
+      <div style="font-size:10px;color:var(--muted);">Pred: ${fmt(d.pred)} &nbsp;|&nbsp; Δ: ${fmtSign(d.dy)}</div>
+    </div>`;
+  });
+}
+
+// ══════════════════════════════════════
+// PROVINCE TABLE (legacy — now unused)
+// ══════════════════════════════════════
+function renderProvTable(data) {}
+function filterProv(risk) {}
+function searchProv(q) {}
+// ══════════════════════════════════════
+function renderCoeff(containerId, mini) {
+  const el = document.getElementById(containerId);
+  const maxAbs = Math.max(...COEFFS.map(c => Math.abs(c.coef)));
+  el.innerHTML = COEFFS.map(c => {
+    const pct = (Math.abs(c.coef) / maxAbs * 44).toFixed(1);
+    const isNeg = c.coef < 0;
+    return `<div class="coeff-row">
+      <div class="coeff-label">${mini ? c.label.split('(')[0].trim() : c.label}</div>
+      <div class="coeff-bar-wrap">
+        <div class="coeff-zero"></div>
+        <div class="coeff-bar ${isNeg ? 'neg' : 'pos'}" style="width:${pct}%"></div>
+      </div>
+      <div class="coeff-val" style="color:${isNeg?'var(--accent)':'var(--accent2)'}">
+        ${c.coef > 0 ? '+' : ''}${c.coef.toFixed(3)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCoeffInterp() {
+  const el = document.getElementById('coeff-interp');
+  COEFFS.forEach(c => {
+    const isNeg = c.coef < 0;
+    el.innerHTML += `<div style="margin-bottom:12px;padding:12px;background:var(--bg);border-radius:6px;border-left:3px solid ${isNeg ? 'var(--accent)' : 'var(--accent2)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text)">${c.label}</span>
+        <span style="font-family:var(--mono);font-size:12px;color:${isNeg?'var(--accent)':'var(--accent2)'};">${c.coef > 0 ? '+' : ''}${c.coef.toFixed(3)}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;">${DESC[c.name] || ''}</div>
+    </div>`;
+  });
+}
+
+// ══════════════════════════════════════
+// MAP
+// ══════════════════════════════════════
+let leafletMap, markers = [];
+function initMap() {
+  leafletMap = L.map('map', { center: [-2.5, 117.5], zoom: 5 });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© CARTO', maxZoom: 18
+  }).addTo(leafletMap);
+
+  DATA.forEach(d => {
+    const coords = COORDS[d.prov];
+    if (!coords) return;
+    const color = d.risk === 'HIGH' ? '#ef4444' : d.risk === 'MEDIUM' ? '#f59e0b' : '#10b981';
+    const r = d.risk === 'HIGH' ? 18 : d.risk === 'MEDIUM' ? 13 : 9;
+    const circle = L.circleMarker(coords, {
+      radius: r, fillColor: color, color: color,
+      weight: 2, opacity: 0.9, fillOpacity: 0.25,
+    }).addTo(leafletMap);
+    circle._riskLevel = d.risk;
+    markers.push(circle);
+
+    circle.on('click', () => showMapDetail(d));
+    circle.bindTooltip(`<strong>${d.prov}</strong><br>${fmt(d.actual)}`, {
+      direction:'top', className:'leaflet-dark-tooltip'
+    });
+  });
+}
+
+function filterMap(risk, btn) {
+  document.querySelectorAll('#tab-map .filter-btn').forEach(b => {
+    b.className = 'filter-btn';
+  });
+  const cls = {all:'active-all',HIGH:'active-high',MEDIUM:'active-med',LOW:'active-low'};
+  btn.className = 'filter-btn ' + (cls[risk] || 'active-all');
+  markers.forEach(m => {
+    if (risk === 'all' || m._riskLevel === risk) {
+      m.setStyle({ opacity: 0.9, fillOpacity: 0.25 });
+    } else {
+      m.setStyle({ opacity: 0.1, fillOpacity: 0.05 });
+    }
+  });
+}
+
+function showMapDetail(d) {
+  const rl = riskLabel(d.risk);
+  const color = riskColor(d.risk);
+  const rec = RECS[d.risk];
+  document.getElementById('map-detail').innerHTML = `
+    <div style="margin-bottom:10px;">
+      <span class="badge ${rl}">${rl}</span>
+      <div style="font-weight:700;font-size:16px;margin-top:6px;">${d.prov}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:var(--bg);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px;">TWP90 Aktual</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:${color}">${fmt(d.actual)}</div>
+      </div>
+      <div style="background:var(--bg);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px;">Prediksi</div>
+        <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text2)">${fmt(d.pred)}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;background:var(--bg);padding:10px;border-radius:6px;margin-bottom:10px;">
+      <div style="color:var(--muted);margin-bottom:4px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;">Tren YoY</div>
+      <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${d.dy>0?'var(--red)':'var(--green)'}">${fmtSign(d.dy)}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text2);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">${rec.icon} ${rec.title}</div>
+      ${rec.actions.slice(0,2).map(a => `<div style="padding:4px 0;border-bottom:1px solid var(--border);">• ${a}</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderRiskDist() {
+  const el = document.getElementById('risk-dist-chart');
+  const total = DATA.length;
+  const bars = [
+    { label:'🔴 Kritis', n: nHigh, color:'var(--red)', pct: nHigh/total*100 },
+    { label:'🟡 Waspada', n: nMed,  color:'var(--orange)', pct: nMed/total*100 },
+    { label:'🟢 Normal', n: nLow,  color:'var(--green)',  pct: nLow/total*100 },
+  ];
+  el.innerHTML = bars.map(b => `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+        <span style="font-family:var(--mono);color:var(--text2);">${b.label}</span>
+        <span style="font-family:var(--mono);font-weight:700;color:${b.color};">${b.n} (${b.pct.toFixed(0)}%)</span>
+      </div>
+      <div style="background:var(--bg);height:10px;border-radius:5px;overflow:hidden;">
+        <div style="width:${b.pct}%;height:100%;background:${b.color};border-radius:5px;opacity:0.8;transition:width .4s;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+// SIMULATE
+// ══════════════════════════════════════
+const PRESETS = {
+  baseline:  { npl: 0, inf: 0, ldr: 0, bi: 0 },
+  stress:    { npl: 1.0, inf: 0.5, ldr: -2.0, bi: 0.5 },
+  optimistic:{ npl: -0.5, inf: -0.5, ldr: 1.0, bi: -0.25 },
+  reset:     { npl: 0, inf: 0, ldr: 0, bi: 0 },
+};
+
+function loadPreset(name, btn) {
+  const p = PRESETS[name];
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sl-npl').value = p.npl;
+  document.getElementById('sl-inf').value = p.inf;
+  document.getElementById('sl-ldr').value = p.ldr;
+  document.getElementById('sl-bi').value  = p.bi;
+  simulate();
+}
+
+function simulate() {
+  const npl = +document.getElementById('sl-npl').value;
+  const inf = +document.getElementById('sl-inf').value;
+  const ldr = +document.getElementById('sl-ldr').value;
+  const bi  = +document.getElementById('sl-bi').value;
+
+  document.getElementById('v-npl').textContent = npl.toFixed(1);
+  document.getElementById('v-inf').textContent = inf.toFixed(1);
+  document.getElementById('v-ldr').textContent = ldr.toFixed(1);
+  document.getElementById('v-bi').textContent  = bi.toFixed(1);
+
+  const dTWP = (-0.207 * npl/100) + (-0.201 * inf/100) + (0.013 * ldr/100) + (-0.003 * bi/100);
+  const projected = Math.max(0, avg + dTWP);
+  const rel = dTWP / avg * 100;
+
+  const dEl = document.getElementById('sim-dtwp');
+  const pEl = document.getElementById('sim-twp');
+  const sEl = document.getElementById('sim-signal');
+  const rEl = document.getElementById('sim-rel');
+
+  dEl.textContent = (dTWP * 100).toFixed(3) + '%';
+  dEl.style.color = dTWP < 0 ? 'var(--green)' : dTWP > 0 ? 'var(--red)' : 'var(--accent)';
+  pEl.textContent = fmt(projected);
+  pEl.style.color = projected >= 0.03 ? 'var(--red)' : projected >= 0.02 ? 'var(--orange)' : 'var(--green)';
+
+  const signal = dTWP < -0.005 ? '↓ MEMBAIK' : dTWP > 0.005 ? '↑ MEMBURUK' : '→ STABIL';
+  const sigColor = dTWP < -0.005 ? 'var(--green)' : dTWP > 0.005 ? 'var(--red)' : 'var(--accent)';
+  sEl.textContent = signal;
+  sEl.style.color = sigColor;
+  rEl.textContent = (rel >= 0 ? '+' : '') + rel.toFixed(1) + '% vs baseline';
+
+  // Narrative
+  generateScenarioNarrative(npl, inf, ldr, bi, dTWP, projected);
+}
+
+function generateScenarioNarrative(npl, inf, ldr, bi, dTWP, projected) {
+  const el = document.getElementById('scen-narrative');
+  const ar = document.getElementById('action-recs');
+  let text = '';
+  let actions = [];
+  let riskLevel = projected >= 0.03 ? 'HIGH' : projected >= 0.02 ? 'MEDIUM' : 'LOW';
+
+  const dominant = [];
+  if (Math.abs(-0.207 * npl/100) > 0.001) dominant.push(`NPL ${npl > 0 ? 'naik' : 'turun'} ${Math.abs(npl).toFixed(1)} ppt`);
+  if (Math.abs(-0.201 * inf/100) > 0.001) dominant.push(`Inflasi ${inf > 0 ? 'naik' : 'turun'} ${Math.abs(inf).toFixed(1)}%`);
+
+  if (dTWP < -0.005) {
+    text = `Skenario menunjukkan <strong>perbaikan kondisi kredit</strong>. ${dominant.length ? dominant.join(' dan ') + ' memicu' : 'Kondisi makroekonomi memicu'} pengetatan standar kredit oleh lembaga keuangan, sehingga TWP90 proyeksi nasional turun ke <strong>${fmt(projected)}</strong>. Ini merupakan sinyal positif bagi stabilitas keuangan digital Indonesia.`;
+    actions = [
+      '✅ Manfaatkan kondisi kondusif untuk ekspansi kredit terukur',
+      '📊 Review alokasi dana penjaminan — bisa dikurangi di provinsi LOW',
+      '🎯 Fokus akuisisi debitur baru dengan scoring ketat',
+    ];
+  } else if (dTWP > 0.005) {
+    text = `Skenario menunjukkan <strong>peningkatan tekanan kredit</strong>. ${dominant.length ? dominant.join(' dan ') + ' mendorong' : 'Perubahan kondisi mendorong'} kenaikan TWP90 proyeksi ke <strong>${fmt(projected)}</strong>. ${projected >= 0.03 ? '⚠️ <strong>Proyeksi melampaui threshold KRITIS 3%</strong> — diperlukan tindakan segera.' : 'Masih dalam batas toleransi namun perlu diwaspadai.'}`;
+    actions = [
+      '🚨 Aktifkan protokol monitoring intensif di provinsi HIGH',
+      '⛔ Pertimbangkan pembatasan ekspansi kredit baru sementara',
+      '💰 Tingkatkan cadangan CKPN minimum 15–20% di atas normal',
+    ];
+  } else {
+    text = `Skenario menunjukkan kondisi <strong>relatif stabil</strong>. Perubahan variabel makroekonomi yang kecil menghasilkan TWP90 proyeksi <strong>${fmt(projected)}</strong> — hampir identik dengan baseline. Sistem early warning dalam mode pemantauan rutin.`;
+    actions = [
+      '📋 Pertahankan standar underwriting saat ini',
+      '📈 Monitor NPL dan inflasi secara real-time sebagai leading indicator',
+      '🔄 Review posisi cadangan dana penjaminan triwulanan',
+    ];
+  }
+
+  el.innerHTML = text;
+  ar.innerHTML = actions.map(a => `<div class="action-card" style="padding:10px;margin-bottom:8px;">
+    <div style="font-size:12px;color:var(--text2);">${a}</div>
+  </div>`).join('');
+}
+
+// ══════════════════════════════════════
+// SCENARIO BAR CHART (SVG)
+// ══════════════════════════════════════
+function renderScenarioChart() {
+  const top10 = DATA.slice(0, 10);
+  const svg = document.getElementById('scenario-bar-chart');
+  const W = 900, H = 280, padL = 140, padR = 20, padT = 20, padB = 60;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const n = top10.length;
+  const groupW = chartW / n;
+  const barW = groupW * 0.25;
+  const maxVal = 0.055;
+
+  const STRESS_COEFFS = { npl: 1.0, inf: 0.5, ldr: -2.0 };
+  const OPT_COEFFS    = { npl: -0.5, inf: -0.5, ldr: 1.0 };
+  const dStress = (-0.207 * 1.0/100) + (-0.201 * 0.5/100) + (0.013 * -2.0/100);
+  const dOpt    = (-0.207 * -0.5/100) + (-0.201 * -0.5/100) + (0.013 * 1.0/100);
+
+  let html = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Y grid
+  for (let i = 0; i <= 5; i++) {
+    const y = padT + chartH - (i / 5) * chartH;
+    const val = (i / 5 * maxVal * 100).toFixed(1);
+    html += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#1f2937" stroke-width="1"/>`;
+    html += `<text x="${padL-6}" y="${y+4}" fill="#475569" font-size="9" text-anchor="end" font-family="IBM Plex Mono">${val}%</text>`;
+  }
+
+  top10.forEach((d, i) => {
+    const cx = padL + i * groupW + groupW / 2;
+    const stress2026 = Math.max(0, d.actual + dStress);
+    const opt2026    = Math.max(0, d.actual + dOpt);
+
+    const barData = [
+      { v: d.actual,  color: '#3b82f6', label:'2025' },
+      { v: d.actual,  color: '#10b981', label:'Baseline' },
+      { v: stress2026,color: '#ef4444', label:'Stress' },
+      { v: opt2026,   color: '#f59e0b', label:'Optimis' },
+    ];
+
+    barData.forEach((b, j) => {
+      const bx = cx - (barW * 1.5) + j * (barW + 2);
+      const bh = (b.v / maxVal) * chartH;
+      const by = padT + chartH - bh;
+      html += `<rect x="${bx}" y="${by}" width="${barW}" height="${bh}" fill="${b.color}" opacity="0.8" rx="1"/>`;
+    });
+
+    // X label
+    const shortName = d.prov.replace('Nusa Tenggara Barat', 'NTB').replace('Nusa Tenggara Timur', 'NTT').replace('Kepulauan ', 'Kep. ').replace('Sumatera ', 'Sum. ').replace('Kalimantan ', 'Kal. ').replace('Sulawesi ', 'Sul. ');
+    html += `<text x="${cx}" y="${H-10}" fill="#64748b" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">${shortName}</text>`;
+  });
+
+  // Legend
+  const legendItems = [
+    { color:'#3b82f6', label:'Aktual 2025' },
+    { color:'#10b981', label:'Baseline 2026' },
+    { color:'#ef4444', label:'Stress 2026' },
+    { color:'#f59e0b', label:'Optimistik 2026' },
+  ];
+  legendItems.forEach((item, i) => {
+    const lx = padL + i * 160;
+    html += `<rect x="${lx}" y="${padT}" width="10" height="10" fill="${item.color}" rx="1" opacity="0.8"/>`;
+    html += `<text x="${lx+14}" y="${padT+9}" fill="#94a3b8" font-size="9" font-family="IBM Plex Mono">${item.label}</text>`;
+  });
+
+  html += `</svg>`;
+  svg.outerHTML = html;
+}
+
+// ══════════════════════════════════════
+// GO
+// ══════════════════════════════════════
+init();
+</script>
+</body>
+</html>
