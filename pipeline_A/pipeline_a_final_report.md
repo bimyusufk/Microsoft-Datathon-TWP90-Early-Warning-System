@@ -6,7 +6,7 @@
 
 ## 1. Arsitektur Pipeline
 
-```mermaid
+```mermaidV
 flowchart LR
     A0["A0: Data Gathering\n1,488 rows (2022-2025)\n31 provinsi"] --> A1["A1: Annual Aggregation\n124 rows (31×4 tahun)\nlog-transform PDRB"]
     A1 --> A2["A2: First-Differences\nHuber Regression\nTrain: Δ2023+Δ2024 (62)\nTest: Δ2025 (31)"]
