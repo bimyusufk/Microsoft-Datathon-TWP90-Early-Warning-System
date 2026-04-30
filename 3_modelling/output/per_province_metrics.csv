@@ -1,0 +1,32 @@
+provinsi_id,nama_provinsi,rmse_model,rmse_naive,beats_naive
+2,Dki Jakarta,0.0299,0.02312,False
+6,Jawa Timur,0.00733,0.00483,False
+5,Daerah Istimewa Yogyakarta,0.00611,0.00571,False
+28,Bali,0.00432,0.00394,False
+22,Sulawesi Utara,0.00416,0.00304,False
+29,Nusa Tenggara Barat,0.0039,0.00315,False
+27,Sulawesi Tenggara,0.00386,0.00076,False
+7,Aceh,0.00354,0.00406,True
+1,Banten,0.00348,0.00348,False
+31,Maluku Utara,0.00331,0.00199,False
+3,Jawa Barat,0.00318,0.00266,False
+15,Bengkulu,0.00314,0.00187,False
+9,Sumatera Barat,0.003,0.00281,False
+16,Lampung,0.00293,0.00286,False
+30,Nusa Tenggara Timur,0.00282,0.00221,False
+4,Jawa Tengah,0.0028,0.00308,True
+18,Kalimantan Tengah,0.00275,0.00309,True
+23,Gorontalo,0.00258,0.00227,False
+21,Kalimantan Selatan,0.00255,0.00203,False
+8,Sumatera Utara,0.0024,0.00194,False
+14,Sumatera Selatan,0.0022,0.00184,False
+13,Jambi,0.00214,0.00205,False
+20,Kalimantan Timur,0.00213,0.00146,False
+32,Maluku,0.00209,0.00151,False
+17,Kalimantan Barat,0.00181,0.00176,False
+11,Kepulauan Riau,0.00176,0.00152,False
+10,Riau,0.0016,0.00137,False
+12,Kepulauan Bangka Belitung,0.00153,0.00178,True
+24,Sulawesi Tengah,0.00153,0.00117,False
+25,Sulawesi Barat,0.00128,0.00222,True
+26,Sulawesi Selatan,0.00115,0.00093,False
