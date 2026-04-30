@@ -1,32 +1,42 @@
-                            OLS Regression Results                            
-==============================================================================
-Dep. Variable:                     dy   R-squared:                       0.179
-Model:                            OLS   Adj. R-squared:                  0.055
-Method:                 Least Squares   F-statistic:                     1.679
-Date:                Thu, 30 Apr 2026   Prob (F-statistic):              0.145
-Time:                        11:52:04   Log-Likelihood:                 231.70
-No. Observations:                  62   AIC:                            -445.4
-Df Residuals:                      53   BIC:                            -426.3
-Df Model:                           8                                         
-Covariance Type:              cluster                                         
-====================================================================================
-                       coef    std err          z      P>|z|      [0.025      0.975]
-------------------------------------------------------------------------------------
-const                0.0031      0.004      0.856      0.392      -0.004       0.010
-d_x1_bi_rate_avg    -0.0033      0.003     -1.213      0.225      -0.009       0.002
-d_x2_inflasi_avg    -0.2475      0.154     -1.611      0.107      -0.549       0.054
-d_log_pdrb           0.0061      0.012      0.497      0.619      -0.018       0.030
-d_x4_tpt             0.0006      0.002      0.323      0.746      -0.003       0.004
-d_x5_internet        0.0217      0.016      1.317      0.188      -0.011       0.054
-d_x8_ldr             0.0203      0.015      1.366      0.172      -0.009       0.049
-d_x9_npl            -0.2598      0.119     -2.187      0.029      -0.493      -0.027
-d_x10_umkm          -0.0404      0.045     -0.903      0.366      -0.128       0.047
-==============================================================================
-Omnibus:                       50.047   Durbin-Watson:                   2.076
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):              343.103
-Skew:                           2.029   Prob(JB):                     3.13e-75
-Kurtosis:                      13.787   Cond. No.                         556.
-==============================================================================
+Pipeline A — First-Differences Huber Regression
+============================================================
+Estimator    : HuberRegressor(epsilon=1.35)
+Train data   : delta-2023, delta-2024 (62 obs)
+Test data    : delta-2025 (31 obs)
+Parameters   : 9 (intercept + 8 features)
+Obs:Param    : 6.9:1
 
-Notes:
-[1] Standard Errors are robust to cluster correlation (cluster)
+PERFORMANCE (Level-space)
+----------------------------------------
+Train RMSE   : 0.005878
+Test  RMSE   : 0.005542
+Naive RMSE   : 0.004768
+Train R2     : 0.6411
+Test  R2     : 0.5999
+Naive R2     : 0.7038
+Overfitting  : 6.1%
+Neg preds    : 0/31
+Beats naive  : 14/31 provinces
+
+vs OLS (previous):
+  RMSE improvement: 17.9%
+  R2 improvement  : 0.194 (0.406 -> 0.600)
+
+COEFFICIENTS (original scale, sorted by |coef|)
+----------------------------------------
+  delta_x2_inflasi_avg        :  -0.201322
+  delta_x1_bi_rate_avg        :  -0.002937
+  delta_x9_npl                :  -0.206536
+  delta_x5_internet           :   0.016981
+  delta_x8_ldr                :   0.013474
+  delta_log_pdrb              :   0.011475
+  delta_x4_tpt                :  -0.000817
+  delta_x10_umkm              :  -0.002980
+
+NOTES
+----------------------------------------
+[1] Huber is robust to outliers (epsilon=1.35, M-estimator).
+[2] Coefficients = association, NOT causation.
+[3] Model provides directional insight & province ranking.
+[4] For point-forecast precision, model still below naive.
+[5] Features standardized (StandardScaler) before fitting.

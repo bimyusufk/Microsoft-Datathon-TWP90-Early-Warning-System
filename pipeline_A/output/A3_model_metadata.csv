@@ -1,2 +1,2 @@
-model,training_period,n_observations,n_parameters,r_squared,significant_drivers,caveat
-First-Differences OLS,2022-2025 (annual diffs),93,9,0.1602,x2_inflasi_avg,"Koefisien = asosiasi bukan kausalitas. Gunakan untuk ranking dan arah, bukan target numerik."
+model,training_period,n_observations,n_parameters,outlier_fraction,key_drivers,caveat
+First-Differences Huber Regressor,2023-2025 annual diffs (all data),93,9,38.7%,"NPL, Inflasi (top Huber importance)","Koefisien = asosiasi bukan kausalitas. Gunakan untuk ranking dan arah, bukan target numerik presisi."

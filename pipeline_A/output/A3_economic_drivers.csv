@@ -1,9 +1,9 @@
-faktor_ekonomi,koefisien,p_value,signifikan,arah,interpretasi
-x2_inflasi_avg,-0.129408,0.0018,True,Negatif,Kenaikan inflasi -> penurunan TWP90 (erosi daya beli)
-x9_npl,-0.229977,0.0517,False,Negatif,Kenaikan NPL -> penurunan TWP90 (pengetatan kredit oleh bank)
-x1_bi_rate_avg,-0.001315,0.1183,False,Negatif,Kenaikan BI rate -> penurunan TWP90 (kebijakan moneter ketat)
-x5_internet,0.012437,0.2732,False,Positif,Peningkatan internet -> kenaikan TWP90 (akses digital banking)
-x10_umkm,-0.020131,0.5,False,Negatif,Kenaikan rasio UMKM -> penurunan TWP90
-x4_tpt,0.000855,0.5946,False,Positif,Kenaikan pengangguran -> kenaikan TWP90
-x8_ldr,0.003368,0.6177,False,Positif,Kenaikan LDR -> kenaikan TWP90 (ekspansi kredit)
-log_pdrb,-0.001752,0.8858,False,Negatif,Pertumbuhan PDRB -> kenaikan TWP90 (ekonomi ekspansif)
+faktor_ekonomi,koefisien,arah,interpretasi
+x1_bi_rate_avg,-0.001652,Negatif,Kenaikan BI rate -> penurunan TWP90 (kebijakan moneter ketat)
+x2_inflasi_avg,-0.105687,Negatif,Kenaikan inflasi -> penurunan TWP90
+x9_npl,-0.132012,Negatif,Kenaikan NPL -> penurunan TWP90 (pengetatan kredit)
+x5_internet,0.005376,Positif,Peningkatan internet -> kenaikan TWP90
+x10_umkm,0.007968,Positif,Kenaikan rasio UMKM -> penurunan TWP90
+x4_tpt,-0.000365,Negatif,Kenaikan pengangguran -> penurunan TWP90
+log_pdrb,-0.002526,Negatif,Pertumbuhan PDRB -> kenaikan TWP90
+x8_ldr,0.001181,Positif,Kenaikan LDR -> kenaikan TWP90 (ekspansi kredit)
